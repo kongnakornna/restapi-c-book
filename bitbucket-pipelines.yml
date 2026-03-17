@@ -1,0 +1,43 @@
+image: nosinovacao/dotnet-sonar
+
+clone:
+  depth: full              # SonarCloud scanner needs the full history to assign issues properly
+
+definitions:
+  caches:
+    sonar: ~/.sonar/cache  # Caching SonarCloud artifacts will speed up your build
+
+  steps:
+  - step: &build-test-sonarcloud
+      services:
+        - docker
+      script: # Modify the commands below to build your repository.
+        - export PROJECT_NAME=TDG.RMS.Sdk.csproj
+        - dotnet tool install --global dotnet-coverage
+        - dotnet /sonar-scanner/SonarScanner.MSBuild.dll begin /k:truedmp_tdg.rms.sdk /d:sonar.host.url="https://sonarcloud.io" /o:trueid /d:sonar.login=${SONAR_TOKEN}
+        - dotnet build $PROJECT_NAME
+#        - dotnet-coverage collect 'dotnet test' -f xml -o 'coverage.xml'
+        - dotnet /sonar-scanner/SonarScanner.MSBuild.dll end  /d:sonar.login=${SONAR_TOKEN}
+        
+  - step: &pack_and_deploy
+      script:
+        - cd JTech.Common.LdapHelper
+        - BUILD_NUMBER=`git log --oneline | wc -l`
+        - echo "Build number':' ${BUILD_NUMBER}"
+        - export PROJECT_NAME=JTech.Common.LdapHelper.csproj
+        - dotnet restore
+        - dotnet build $PROJECT_NAME
+        - dotnet pack --configuration release -p:PackageVersion=1.0.$BUILD_NUMBER
+        - dotnet nuget push ./bin/release/*.nupkg --api-key ${NUGET_TOKEN} --source https://api.nuget.org/v3/index.json
+
+pipelines:
+  branches:
+    master:
+#      - step: *build-test-sonarcloud
+#      - step: *check-quality-gate-sonarcloud
+      - step: *pack_and_deploy
+  pull-requests:
+    '**':
+#      - step: *build-test-sonarcloud
+      - step: *pack_and_deploy
+#      - step: *check-quality-gate-sonarcloud 

@@ -1,0 +1,11 @@
+{
+  "to_test1": {
+    "path": "/api/v1",
+    "forward": "https://xxxxasdfasf:4334/api/v1"
+  },
+  "to_test2": {
+    "path": "/api/v1",
+    "forward": "https://xxxxasdfasf:4334/api/v1"
+  }
+
+}

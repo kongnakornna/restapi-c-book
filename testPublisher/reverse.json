@@ -1,0 +1,6 @@
+{
+  "default": {
+    "StartWithPath": "/api/v2",
+    "ForwardPath": "http://localhost:5119/api/v1"
+  }
+}
