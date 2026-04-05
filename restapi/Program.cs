@@ -52,7 +52,7 @@ Jtech.Common.Extensions.UseJTechRestApi(
             //== Configuration for Swagger Doc
             options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
             {
-                Title = "iCmon Rest api C#",
+                Title = "Test Swagger Title",
                 Version = "v1",
             });
         };
