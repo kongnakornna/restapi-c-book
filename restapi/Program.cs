@@ -30,15 +30,17 @@ using TestCommon.Controllers;
 using TestCommon.Database;
 using TestCommon.HttpClient;
 using TestCommon.Models;
+using TestCommon.Stores;          // ✅ ใช้ PostgreSqlStore
 using Helpers = Jtech.Common.Helpers;
 using Jtech.Common.BusinessLogic.Query;
+using Microsoft.EntityFrameworkCore;   // ✅ เพิ่ม EF Core
 
 Jtech.Common.Extensions.UseJTechRestApi(
     args: args,
     Configure: config => {
         //    Configuration for use appsetting from another api
         //config.UrlServiceConfiguration = "https://localhost:7256/WeatherForecast/configuration",
-       
+
         //    Configuration for user reverse proxy api gateway
         //config.ApiGatewayConfigure = () =>
         //{
@@ -70,11 +72,27 @@ Jtech.Common.Extensions.UseJTechRestApi(
         config.SecurityConfig = option =>
         {
             option.JwtIssurer = "localhost.com";
-            option.JwtKey = "YourSecretKeyForAuthenticationOfApplication";
+            option.JwtKey = "Na@#1234";
             option.RequirePayload = true;
         };
         config.BuilderConfigre = options =>
         {
+            // ==================== PostgreSQL Setup ====================
+            var connectionString = config.Configuration.GetConnectionString("PostgreSql");
+            options.Services.AddDbContext<BlogContext>(dbOpt =>
+            {
+                dbOpt.UseNpgsql(connectionString);
+            });
+
+            // ใช้ PostgreSQL Store ที่ implement ด้วย EF Core แทน MongoClient
+            options.Services.AddScoped(typeof(Store<>), typeof(PostgreSqlStore<>));
+
+            // CRUDLogic จะใช้ Store<> ที่เราลงทะเบียนไว้
+            options.Services.AddLogic<CRUDLogic>();
+
+            // SystemLogic ยังใช้ BlogContext ได้ตามเดิม (ตอนนี้เป็น PostgreSQL)
+            options.Services.AddSystemLogic<BlogContext>();
+            // ==========================================================
 
             //    Configuration for use htt client policy [retry, add log]
             options.Services.AddHttpClientWithPolicy<TestCommon.HttpClient.Ch3Client>(c =>
@@ -82,7 +100,7 @@ Jtech.Common.Extensions.UseJTechRestApi(
                 c.BaseAddress = "https://api-ch3plus.mello.me/api/configuration";
             });
 
-            ////     Configuration for use Line Notifycation Service
+            //     Configuration for use Line Notifycation Service
             options.Services.UseLineNotify();
 
             //     Configuration for use Email Notifycation Service
@@ -91,41 +109,20 @@ Jtech.Common.Extensions.UseJTechRestApi(
             //    option.Password = "xxx";
             //});
 
-            //     Configuration for use SQLLite database 1
-            options.Services.AddDbContext<BlogContext>().AddEntityFrameworkSqlite();
-
-            //     Configuration for use MongoDB Database
-            options.Services.AddMongoClient<MongoClient>(() => {
-                return new MongoClient(@"mongodb://localhost");
-            });
-
-            options.Services.AddStore<MongoClient>("test");
-
-            //      Configuration for BusinessLogic
-           
-
-            //==> Inject overrid store to crud logic
-            options.Services.AddLogic<CRUDLogic, MongoClient>("test");
-
-
-            options.Services.AddSystemLogic<BlogContext>();
-
-
+            // Business Logic อื่น ๆ
             options.Services.AddLogic<TestInject>();
 
-
+            // (Optional) Kafka / RabbitMQ / Ldap / MassTransit ตามเดิม (comment ไว้)
             //options.Services.AddKafkaPublisher<StorePublisherContext>(() =>
             //{
             //    return new ProducerConfig { BootstrapServers = "localhost", ClientId = Dns.GetHostName() };
             //}, "Book");
 
-            //      Example for Configuration Rabbit Publisher Blog
             //options.Services.AddRabbitPublisher<Blog>(new List<string> { "localhost" }, connection => {
             //    connection.UserName = "default";
             //    connection.Password = "password";
             //},"Blog");
 
-            //      Example for User Ldap Authentication 
             //options.Services.AddLdapProvider(op => {
             //    op.Host = "localhost";
             //});
@@ -140,7 +137,6 @@ Jtech.Common.Extensions.UseJTechRestApi(
             //    });
             //    configure.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter(false));
             //});
-
 
             //options.Services.AddResolver();
             //options.Services.AddTestDi<ClientResolve>((provider) => {

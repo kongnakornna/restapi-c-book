@@ -1,44 +1,34 @@
-﻿using Jtech.Common.BusinessLogic.AutoNumber;
+using Jtech.Common.BusinessLogic.AutoNumber;
 using Jtech.Common.BusinessLogic.Query;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver;
-using TestCommon.Models;
+using RestCommon.Models;
 
-namespace TestCommon.Database
+namespace RestCommon.Database
 {
-    public class TMongoClient : MongoClient
-    {
-        public TMongoClient(string connectionString) : base(connectionString)
-        {
-        }
-    }
+    // ถ้าไม่จำเป็นต้องใช้ MongoDB สามารถลบคลาส TMongoClient ทิ้งได้
+    // public class TMongoClient : MongoClient { ... }
+
     public class BlogContext : DbContext
     {
+        // Constructor รับ options จาก Program.cs (ใช้ DI)
+        public BlogContext(DbContextOptions<BlogContext> options) : base(options)
+        {
+        }
+
+        // DbSet ทั้งหมดตามโครงสร้างเดิม
         public DbSet<Blog> Blog { get; set; }
         public DbSet<Post> Post { get; set; }
-
-        public DbSet<NumberFormat> NumberFormat{get;set;}
-
+        public DbSet<NumberFormat> NumberFormat { get; set; }
         public DbSet<Query> Query { get; set; }
-
         public DbSet<Connections> Connection { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            var connectionStringBuilder = new SqliteConnectionStringBuilder { DataSource = ".\\Database\\demo.db" };
-            var connectionString = connectionStringBuilder.ToString();
-            var connection = new SqliteConnection(connectionString);
+        // ไม่ต้อง override OnConfiguring เพราะ Connection String ถูกส่งจากภายนอก
+        // และไม่ใช้ SQLite หรือ MongoDB อีกต่อไป
 
-            optionsBuilder.UseSqlite(connection);
-            //this.Set<>
-
-        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            //modelBuilder.Entity<Blog>();
-            //modelBuilder.Entity()
             base.OnModelCreating(modelBuilder);
+            // กำหนดเพิ่มเติมเกี่ยวกับ Entity (Primary Key, Index, ความสัมพันธ์) ได้ที่นี่
         }
     }
 }
